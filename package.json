@@ -1,0 +1,19 @@
+{
+  "name": "file-writer",
+  "version": "1.0.0",
+  "description": "Write files!",
+  "main": "src/file-writer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "private": true,
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "bytes": "^3.0.0",
+    "commander": "^2.12.2",
+    "mkdirp": "^0.5.1",
+    "range": "0.0.3",
+    "async": "latest"
+  }
+}
