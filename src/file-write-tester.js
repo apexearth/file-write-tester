@@ -3,6 +3,20 @@ const fs                                 = require('fs')
 const mkdirp                             = require('mkdirp')
 const {range}                            = require('range')
 const {series, parallelLimit, waterfall} = require('async')
+const bytes                              = require('bytes')
+
+const stats = {
+    filesCreated          : 0,
+    bytesWritten          : 0,
+    bytesWrittenLastSecond: 0,
+    bytesWrittenPerSecond : 0,
+    streamsCreated        : 0,
+}
+
+setInterval(() => {
+    stats.bytesWrittenPerSecond  = ((stats.bytesWrittenPerSecond * 5) + (stats.bytesWritten - stats.bytesWrittenLastSecond)) / 6
+    stats.bytesWrittenLastSecond = stats.bytesWritten
+}, 1000)
 
 const writer = (dir, folders, depth, files, streams, size, bs, done) => {
     assert.ok(typeof dir === 'string', `dir (${dir}) must be a string`)
@@ -42,22 +56,40 @@ const writeFolder = (dir, files, streams, size, bs, done) => {
 
 const writeFile = (dir, streams, size, bs, done) => {
     const buf = buffer(bs)
+    for(let i = 0; i < bs; i++) buf[i] = (Math.random()*256)^0
+
     waterfall([
         done => fs.unlink(dir, err => done()),
-        done => fs.open(dir, 'a', done),
+        done => fs.open(dir, 'a', (err, fd) => {
+            stats.filesCreated++
+            done(err, fd)
+        }),
     ].concat(
         range(0, size, bs).map(position =>
             (fd, done) => {
-                fs.write(fd, buf, 0, bs, position, err => done(err, fd))
+                fs.write(fd, buf, 0, bs, position, err => {
+                    if (!err) {
+                        stats.bytesWritten += size
+                    }
+                    done(err, fd)
+                })
             })
     ).concat(
         range(0, streams).map(number =>
             (fd, done) => {
-                writeFile(`${dir}:${number}`, 0, 256, 256, err => done(err, fd))
+                writeFile(`${dir}:${number}`, 0, 256, 256, err => {
+                    if (!err) {
+                        stats.bytesWritten += size
+                    }
+                    done(err, fd)
+                })
             })
     ), (err, fd) => {
         fs.close(fd, err2 => {
-            console.log(`Wrote: ${dir}`)
+            let created          = stats.filesCreated
+            let written          = bytes(stats.bytesWritten, {unit: 'GB', decimalPlaces: 3})
+            let writtenPerSecond = bytes(stats.bytesWrittenPerSecond, {unit: 'MB', decimalPlaces: 2})
+            console.log(`${created} ${written} (${writtenPerSecond}/s) : ${dir}`)
             done(err || err2)
         })
     })

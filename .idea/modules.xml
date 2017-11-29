@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/file-writer.iml" filepath="$PROJECT_DIR$/.idea/file-writer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/file-write-tester.iml" filepath="$PROJECT_DIR$/.idea/file-write-tester.iml" />
     </modules>
   </component>
 </project>

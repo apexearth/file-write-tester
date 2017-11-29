@@ -1,14 +1,13 @@
 {
-  "name": "file-writer",
+  "name": "file-write-tester",
   "version": "1.0.0",
-  "description": "Write files!",
-  "main": "src/file-writer.js",
+  "description": "Write files to a directory for test purposes!",
+  "main": "src/file-write-tester.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha src/**/*.spec.js"
   },
-  "private": true,
-  "author": "",
-  "license": "",
+  "author": "Christopher Jacobs <apexearth@gmail.com>",
+  "license": "ISC",
   "dependencies": {
     "bytes": "^3.0.0",
     "commander": "^2.12.2",

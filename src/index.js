@@ -1,6 +1,6 @@
 const pkg     = require('../package.json');
 const program = require('commander');
-const writer  = require('./file-writer');
+const writer  = require('./file-write-tester');
 const bytes   = require('bytes');
 
 program
