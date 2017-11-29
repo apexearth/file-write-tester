@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Write files to a directory for test purposes!",
   "main": "src/file-write-tester.js",
+  "repository": "https://github.com/apexearth/file-write-tester",
   "scripts": {
     "test": "mocha src/**/*.spec.js"
   },
