@@ -10,9 +10,9 @@ class Writer extends EventEmitter {
     constructor({dir, folders, depth, files, size, bs, streams, stream_size, stream_bs, parallelWrites}) {
         super()
         assert.ok(typeof dir === 'string', `dir (${dir}) must be a string`)
-        assert.ok(typeof folders === 'number', `folders (${folders}) must be a number`)
-        assert.ok(typeof depth === 'number', `depth (${depth}) must be a number`)
-        assert.ok(typeof files === 'number', `files (${files}) must be a number`)
+        assert.ok(folders > 0, `folders (${folders}) must be greater than 0`)
+        assert.ok(depth >= 0, `depth (${depth}) must be greater than or equal to 0`)
+        assert.ok(files > 0, `files (${files}) must be greater than 0`)
         assert.ok(typeof size === 'number', `size (${size}) must be a number`)
         assert.ok(typeof bs === 'number', `bs (${bs}) must be a number`)
         assert.ok(typeof streams === 'number', `streams (${streams}) must be a number`)
@@ -74,7 +74,7 @@ class Writer extends EventEmitter {
     }
 
     writeFolders(dir, depth, done) {
-        const tasks = range(1, this.folders).map(number => done => {
+        const tasks = range(1, this.folders + 1).map(number => done => {
             if (depth) {
                 this.writeFolders(`${dir}/${number}`, depth - 1, done)
             } else {
@@ -86,7 +86,7 @@ class Writer extends EventEmitter {
 
     writeFolder(dir, done) {
         mkdirp(dir, err => {
-            const tasks = range(1, this.files).map(number => done => {
+            const tasks = range(1, this.files + 1).map(number => done => {
                 this.writeFileWithStreams(`${dir}/${number}.file`, this.streams, done)
             })
             parallelLimit(tasks, this.parallelWrites, done)
@@ -127,6 +127,7 @@ class Writer extends EventEmitter {
                 fs.close(fd, err2 => {
                         this.log(file)
                         this.stats.writesInProgress--
+                        this.emit('file', file)
                         done(err || err2)
                     }
                 )
