@@ -108,13 +108,12 @@ class Writer extends EventEmitter {
         const buf = buffer(bs)
         for (let i = 0; i < bs; i++) buf[i] = (Math.random() * 256) ^ 0
         waterfall([
-                done => fs.unlink(file, err => done()),
-                done => fs.open(file, 'a', (err, fd) => {
-                    this.stats.filesCreated++
-                    done(err, fd)
-                }),
-            ].concat(
-            range(0, size, bs).map(position =>
+            done => fs.unlink(file, err => done()),
+            done => fs.open(file, 'a', (err, fd) => {
+                this.stats.filesCreated++
+                done(err, fd)
+            }),
+            ...range(0, size, bs).map(position =>
                 (fd, done) => {
                     fs.write(fd, buf, 0, bs, position, err => {
                         if (!err) {
@@ -123,16 +122,15 @@ class Writer extends EventEmitter {
                         done(err, fd)
                     })
                 })
-            ), (err, fd) => {
-                fs.close(fd, err2 => {
-                        this.log(file)
-                        this.stats.writesInProgress--
-                        this.emit('file', file)
-                        done(err || err2)
-                    }
-                )
-            }
-        )
+        ], (err, fd) => {
+            fs.close(fd, err2 => {
+                    this.log(file)
+                    this.stats.writesInProgress--
+                    this.emit('file', file)
+                    done(err || err2)
+                }
+            )
+        })
     }
 
     log(msg = '') {
