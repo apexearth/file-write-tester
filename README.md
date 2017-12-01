@@ -1,8 +1,10 @@
 # file-write-tester
 
-Write files to a directory for test purposes!
+- Write files [with streams] to a directory for test purposes.
+- Writing is contiguous.
+- Content is random based on the `bs` size.
 
-## Command-line
+## Use with Command-line
 
 ### Install
 ```
@@ -30,7 +32,6 @@ Options:
 ```
 
 ### Example
-
 ```
 file-write-tester 
     O:/target_folder 
@@ -75,3 +76,6 @@ file-write-tester
 32 0.063GB(8.06MB/s)[0] : O:/target_folder/2/2/3.file:0
 file-write-tester complete
 ```
+
+## Use with Code
+

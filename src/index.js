@@ -15,7 +15,7 @@ program
     .option('--parallelWrites <count>', 'The number of parallel writes to perform.', n => parseInt(n), 8)
     .option('--stream_size <size>', 'The size of each stream.', bytes.parse, bytes.parse('256B'))
     .option('--stream_bs <bs>', 'The payload write size for streams.', bytes.parse, bytes.parse('256B'))
-program.parse(process.argv)
+    .parse(process.argv)
 
 program.dir = program.args[0]
 if (!program.dir) {
