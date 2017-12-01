@@ -4,95 +4,142 @@ const mkdirp                             = require('mkdirp')
 const {range}                            = require('range')
 const {series, parallelLimit, waterfall} = require('async')
 const bytes                              = require('bytes')
+const {EventEmitter}                     = require('events')
 
-const stats = {
-    filesCreated          : 0,
-    bytesWritten          : 0,
-    bytesWrittenLastSecond: 0,
-    bytesWrittenPerSecond : 0,
-    streamsCreated        : 0,
-}
+class Writer extends EventEmitter {
+    constructor({dir, folders, depth, files, size, bs, streams, stream_size, stream_bs, parallelWrites}) {
+        super()
+        assert.ok(typeof dir === 'string', `dir (${dir}) must be a string`)
+        assert.ok(typeof folders === 'number', `folders (${folders}) must be a number`)
+        assert.ok(typeof depth === 'number', `depth (${depth}) must be a number`)
+        assert.ok(typeof files === 'number', `files (${files}) must be a number`)
+        assert.ok(typeof size === 'number', `size (${size}) must be a number`)
+        assert.ok(typeof bs === 'number', `bs (${bs}) must be a number`)
+        assert.ok(typeof streams === 'number', `streams (${streams}) must be a number`)
+        assert.ok(typeof stream_size === 'number', `stream_size (${stream_size}) must be a number`)
+        assert.ok(typeof stream_bs === 'number', `stream_bs (${stream_bs}) must be a number`)
+        assert.ok(typeof parallelWrites === 'number', `parallelWrites (${parallelWrites}) must be a number`)
 
-setInterval(() => {
-    stats.bytesWrittenPerSecond  = ((stats.bytesWrittenPerSecond * 5) + (stats.bytesWritten - stats.bytesWrittenLastSecond)) / 6
-    stats.bytesWrittenLastSecond = stats.bytesWritten
-}, 1000)
+        this.dir            = dir
+        this.folders        = folders
+        this.depth          = depth
+        this.files          = files
+        this.size           = size
+        this.bs             = bs
+        this.streams        = streams
+        this.stream_size    = stream_size
+        this.stream_bs      = stream_bs
+        this.parallelWrites = parallelWrites
 
-const writer = (dir, folders, depth, files, streams, size, bs, done) => {
-    assert.ok(typeof dir === 'string', `dir (${dir}) must be a string`)
-    assert.ok(typeof folders === 'number', `folders (${folders}) must be a number`)
-    assert.ok(typeof depth === 'number', `depth (${depth}) must be a number`)
-    assert.ok(typeof files === 'number', `files (${files}) must be a number`)
-    assert.ok(typeof streams === 'number', `streams (${streams}) must be a number`)
-    assert.ok(typeof size === 'number', `size (${size}) must be a number`)
-    assert.ok(typeof bs === 'number', `bs (${bs}) must be a number`)
 
-    mkdirp(dir, err => {
-        writeFolders(dir, folders, depth, files, streams, size, bs, done)
-    })
-}
-
-module.exports = writer
-
-const writeFolders = (dir, folders, depth, files, streams, size, bs, done) => {
-    const tasks = range(1, folders).map(number => done => {
-        if (depth) {
-            writeFolders(`${dir}/${number}`, folders, depth - 1, files, streams, size, bs, done)
-        } else {
-            writeFolder(`${dir}/${number}`, files, streams, size, bs, done)
+        this.stats = {
+            filesCreated          : 0,
+            bytesWritten          : 0,
+            bytesWrittenLastSecond: 0,
+            bytesWrittenPerSecond : 0,
+            streamsCreated        : 0,
+            writesInProgress      : 0,
+            toString              : () => {
+                let created          = this.stats.filesCreated
+                let written          = bytes(this.stats.bytesWritten, {unit: 'GB', decimalPlaces: 3})
+                let writtenPerSecond = bytes(this.stats.bytesWrittenPerSecond, {unit: 'MB', decimalPlaces: 2})
+                let writesInProgress = this.stats.writesInProgress
+                return `${created} ${written}(${writtenPerSecond}/s)[${writesInProgress}]`
+            }
         }
-    })
-    series(tasks, done)
-}
+    }
 
-const writeFolder = (dir, files, streams, size, bs, done) => {
-    mkdirp(dir, err => {
-        const tasks = range(1, files).map(number => done => {
-            writeFile(`${dir}/${number}.file`, streams, size, bs, done)
-        })
-        parallelLimit(tasks, 16, done)
-    })
-}
+    startStatTracking() {
+        if (this.statIntervalId) throw new Error('Already tracking stats!')
+        this.statIntervalId = setInterval(() => {
+            this.stats.bytesWrittenPerSecond  = ((this.stats.bytesWrittenPerSecond * 5) + (this.stats.bytesWritten - this.stats.bytesWrittenLastSecond)) / 6
+            this.stats.bytesWrittenLastSecond = this.stats.bytesWritten
+            this.emit('stats', this.stats)
+        }, 1000)
+    }
 
-const writeFile = (dir, streams, size, bs, done) => {
-    const buf = buffer(bs)
-    for(let i = 0; i < bs; i++) buf[i] = (Math.random()*256)^0
+    stopStatTracking() {
+        clearInterval(this.statIntervalId)
+        this.statIntervalId = undefined
+    }
 
-    waterfall([
-        done => fs.unlink(dir, err => done()),
-        done => fs.open(dir, 'a', (err, fd) => {
-            stats.filesCreated++
-            done(err, fd)
-        }),
-    ].concat(
-        range(0, size, bs).map(position =>
-            (fd, done) => {
-                fs.write(fd, buf, 0, bs, position, err => {
-                    if (!err) {
-                        stats.bytesWritten += size
-                    }
-                    done(err, fd)
-                })
+    start(done) {
+        this.startStatTracking()
+        mkdirp(this.dir, err => {
+            this.writeFolders(this.dir, this.depth, err => {
+                this.stopStatTracking()
+                return done(err)
             })
-    ).concat(
-        range(0, streams).map(number =>
-            (fd, done) => {
-                writeFile(`${dir}:${number}`, 0, 256, 256, err => {
-                    if (!err) {
-                        stats.bytesWritten += size
-                    }
-                    done(err, fd)
-                })
-            })
-    ), (err, fd) => {
-        fs.close(fd, err2 => {
-            let created          = stats.filesCreated
-            let written          = bytes(stats.bytesWritten, {unit: 'GB', decimalPlaces: 3})
-            let writtenPerSecond = bytes(stats.bytesWrittenPerSecond, {unit: 'MB', decimalPlaces: 2})
-            console.log(`${created} ${written} (${writtenPerSecond}/s) : ${dir}`)
-            done(err || err2)
         })
-    })
+    }
+
+    writeFolders(dir, depth, done) {
+        const tasks = range(1, this.folders).map(number => done => {
+            if (depth) {
+                this.writeFolders(`${dir}/${number}`, depth - 1, done)
+            } else {
+                this.writeFolder(`${dir}/${number}`, done)
+            }
+        })
+        series(tasks, done)
+    }
+
+    writeFolder(dir, done) {
+        mkdirp(dir, err => {
+            const tasks = range(1, this.files).map(number => done => {
+                this.writeFileWithStreams(`${dir}/${number}.file`, this.streams, done)
+            })
+            parallelLimit(tasks, this.parallelWrites, done)
+        })
+    }
+
+    writeFileWithStreams(file, streams, done) {
+        const tasks = [
+            done => this.writeFile(file, this.size, this.bs, done),
+            ...range(0, streams).map(number =>
+                done => this.writeFile(`${file}:${number}`, this.stream_size, this.stream_bs, done)
+            )
+        ]
+        series(tasks, done)
+    }
+
+    writeFile(file, size, bs, done) {
+        this.stats.writesInProgress++
+        const buf = buffer(bs)
+        for (let i = 0; i < bs; i++) buf[i] = (Math.random() * 256) ^ 0
+        waterfall([
+                done => fs.unlink(file, err => done()),
+                done => fs.open(file, 'a', (err, fd) => {
+                    this.stats.filesCreated++
+                    done(err, fd)
+                }),
+            ].concat(
+            range(0, size, bs).map(position =>
+                (fd, done) => {
+                    fs.write(fd, buf, 0, bs, position, err => {
+                        if (!err) {
+                            this.stats.bytesWritten += bs
+                        }
+                        done(err, fd)
+                    })
+                })
+            ), (err, fd) => {
+                fs.close(fd, err2 => {
+                        this.log(file)
+                        this.stats.writesInProgress--
+                        done(err || err2)
+                    }
+                )
+            }
+        )
+    }
+
+    log(msg = '') {
+        this.emit('log', `${this.stats.toString()} : ${msg}`)
+    }
 }
+
+module.exports = Writer
+
 
 const buffer = size => Buffer.alloc(size);
