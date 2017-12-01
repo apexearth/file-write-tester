@@ -24,10 +24,8 @@ if (!program.dir) {
 }
 
 const writer = new Writer(program)
-
-//writer.on('stats', stats => console.log(stats.toString()))
-
 writer.on('file', file => console.log(writer.stats.toString() + " : " + file))
+writer.on('stats', stats => console.log(stats.toString()))
 writer.start(err => {
     if (err)
         console.error(err)

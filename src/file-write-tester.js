@@ -7,7 +7,19 @@ const bytes                              = require('bytes')
 const {EventEmitter}                     = require('events')
 
 class Writer extends EventEmitter {
-    constructor({dir, folders, depth, files, size, bs, streams, stream_size, stream_bs, parallelWrites}) {
+    constructor({
+        dir = 'file-write-tester',
+        folders = 10,
+        depth = 2,
+        files = 128,
+        size = Math.pow(1024, 3) * 4,
+        bs = Math.pow(1024, 3) * .5,
+        streams = 0,
+        stream_size = 256,
+        stream_bs = 256,
+        parallelWrites = 8,
+        overwrite = false
+    }) {
         super()
         assert.ok(typeof dir === 'string', `dir (${dir}) must be a string`)
         assert.ok(folders > 0, `folders (${folders}) must be greater than 0`)
@@ -19,6 +31,7 @@ class Writer extends EventEmitter {
         assert.ok(typeof stream_size === 'number', `stream_size (${stream_size}) must be a number`)
         assert.ok(typeof stream_bs === 'number', `stream_bs (${stream_bs}) must be a number`)
         assert.ok(typeof parallelWrites === 'number', `parallelWrites (${parallelWrites}) must be a number`)
+        assert.ok(typeof overwrite === 'boolean', `overwrite (${overwrite}) must be a boolean`)
 
         this.dir            = dir
         this.folders        = folders
@@ -30,7 +43,7 @@ class Writer extends EventEmitter {
         this.stream_size    = stream_size
         this.stream_bs      = stream_bs
         this.parallelWrites = parallelWrites
-
+        this.overwrite      = overwrite
 
         this.stats = {
             filesCreated          : 0,
@@ -64,6 +77,15 @@ class Writer extends EventEmitter {
     }
 
     start(done) {
+        console.log('===========================')
+        console.log('file-write-tester starting:')
+        console.log('===========================')
+        Object.keys(this)
+            .filter(key => key[0] !== '_' && ['domain', 'stats'].indexOf(key) === -1)
+            .map(key => {
+                console.log(`${key}: ${this[key]}`)
+            })
+        console.log('===========================')
         this.startStatTracking()
         mkdirp(this.dir, err => {
             this.writeFolders(this.dir, this.depth, err => {
@@ -104,12 +126,20 @@ class Writer extends EventEmitter {
     }
 
     writeFile(file, size, bs, done) {
-        this.stats.writesInProgress++
-        const buf = buffer(bs)
+        const skipMessage = `${file} (skipped)`
+        const buf         = Buffer.alloc(bs)
         for (let i = 0; i < bs; i++) buf[i] = (Math.random() * 256) ^ 0
         waterfall([
+            done => fs.stat(file, (err, stat) => {
+                if (stat && !this.overwrite) {
+                    return done(skipMessage)
+                } else {
+                    return done()
+                }
+            }),
             done => fs.unlink(file, err => done()),
             done => fs.open(file, 'a', (err, fd) => {
+                this.stats.writesInProgress++
                 this.stats.filesCreated++
                 done(err, fd)
             }),
@@ -123,11 +153,16 @@ class Writer extends EventEmitter {
                     })
                 })
         ], (err, fd) => {
+            if (err === skipMessage) {
+                this.log(skipMessage)
+                this.emit('file', skipMessage)
+                return done()
+            }
             fs.close(fd, err2 => {
-                    this.log(file)
                     this.stats.writesInProgress--
+                    this.log(file)
                     this.emit('file', file)
-                    done(err || err2)
+                    return done(err || err2)
                 }
             )
         })
@@ -139,6 +174,3 @@ class Writer extends EventEmitter {
 }
 
 module.exports = Writer
-
-
-const buffer = size => Buffer.alloc(size);
