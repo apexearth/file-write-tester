@@ -1,0 +1,11 @@
+language: node_js
+node_js:
+- '8'
+deploy:
+  provider: npm
+  email: apexearth@gmail.com
+  api_key:
+    secure: gTA1rFzIJnTQj/hC9paiXSWJNiiQWHGje07BU0XMI8D2c7O0zzcbW6q2ZGh7f5xef3oe43fPmq07m1+mOgJWhWLDVA9JMi6CaVcKLvhgoCPTbEk0fQ12pUnHjYblPp6sy2v7zdUW+OCnix7uogywcT9TYdodVbLS94oUx8yyucULWwKQCPJ+tH0vB7EVeI1q8Z4DCjDh6Sfkf2Tdcy2E76j5Rv0kc+fZW0BcS550WpUpfq9WJanhtOV1cQ8IrUNrMtM1AsLDanjTDk8BxVFY7Dd2bE7NnIBR/f6rNU5MHC+AgeqrnpSJrE/Qz7KIozPg9PhAh3drdJmqL8XnCFjJfAt40DdARHc1eAREqql1rTOL8EijRHgElbnrsEwiH1d5cki47nxnWxoYo9ZpU54Mt1Vvqyh2AltWI4MWF3eQIAfCQyuYaxa7jYdQZYXQUH6tsWCdLs6yMgnyR2UmJy8KF+Wje4uNqfFXfaJvJXib1K/Dk3iG7BrX2jCdZ/+Ke/4OLx1U1J58zV2o/KR4Eig64kVAixsl0Sp/a8gp3lDQUamcF6LJdum2IQpWpRD9PWxc0n9flZGgIYo9EcdMOLEE1vNHugTLTXfxjub60G+y6JJ2VlNaNW/8prpd4iezIE0wRg6jCeFOnaVbThPykP00FnjN4BcGyz+ztFUnzW3/PB4=
+  on:
+    tags: true
+    repo: apexearth/file-write-tester
