@@ -1,6 +1,6 @@
 {
   "name": "file-write-tester",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Write files to a directory for test purposes!",
   "main": "src/file-write-tester.js",
   "bin": "./bin/file-write-tester",
