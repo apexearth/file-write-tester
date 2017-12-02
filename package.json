@@ -1,8 +1,9 @@
 {
   "name": "file-write-tester",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Write files to a directory for test purposes!",
   "main": "src/file-write-tester.js",
+  "bin": "./bin/file-write-tester",
   "repository": "https://github.com/apexearth/file-write-tester",
   "scripts": {
     "test": "nyc mocha src/**/*.spec.js"
