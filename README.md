@@ -28,6 +28,7 @@ Options:
 --parallelWrites <count>  The number of parallel writes to perform. (default: 8)
 --stream_size <size>      The size of each stream. (default: 256)
 --stream_bs <bs>          The payload write size for streams. (default: 256)
+--overwrite               Overwrite existing files.
 -h, --help                output usage information
 ```
 
