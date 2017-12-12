@@ -16,6 +16,7 @@ program
     .option('--stream_size <size>', 'The size of each stream.', bytes.parse, bytes.parse('256B'))
     .option('--stream_bs <bs>', 'The payload write size for streams.', bytes.parse, bytes.parse('256B'))
     .option('--overwrite', 'Overwrite existing files.')
+    .option('--overwrite_chance <chance>', 'The chance that a pre-existing file will be overwritten. (0 to 1.0)', n => parseFloat(n), 1)
     .parse(process.argv)
 
 program.dir = program.args[0]

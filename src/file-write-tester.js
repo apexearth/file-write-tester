@@ -18,7 +18,8 @@ class Writer extends EventEmitter {
         stream_size = 256,
         stream_bs = 256,
         parallelWrites = 8,
-        overwrite = false
+        overwrite = false,
+        overwrite_chance = 1.0,
     }) {
         super()
         assert.ok(typeof dir === 'string', `dir (${dir}) must be a string`)
@@ -32,18 +33,20 @@ class Writer extends EventEmitter {
         assert.ok(typeof stream_bs === 'number', `stream_bs (${stream_bs}) must be a number`)
         assert.ok(typeof parallelWrites === 'number', `parallelWrites (${parallelWrites}) must be a number`)
         assert.ok(typeof overwrite === 'boolean', `overwrite (${overwrite}) must be a boolean`)
+        assert.ok(typeof overwrite_chance === 'number', `overwrite_chance (${overwrite_chance}) must be a number`)
 
-        this.dir            = dir
-        this.folders        = folders
-        this.depth          = depth
-        this.files          = files
-        this.size           = size
-        this.bs             = bs
-        this.streams        = streams
-        this.stream_size    = stream_size
-        this.stream_bs      = stream_bs
-        this.parallelWrites = parallelWrites
-        this.overwrite      = overwrite
+        this.dir              = dir
+        this.folders          = folders
+        this.depth            = depth
+        this.files            = files
+        this.size             = size
+        this.bs               = bs
+        this.streams          = streams
+        this.stream_size      = stream_size
+        this.stream_bs        = stream_bs
+        this.parallelWrites   = parallelWrites
+        this.overwrite        = overwrite
+        this.overwrite_chance = overwrite_chance
 
         this.stats = {
             filesCreated          : 0,
@@ -126,12 +129,13 @@ class Writer extends EventEmitter {
     }
 
     writeFile(file, size, bs, done) {
-        const skipMessage = `${file} (skipped)`
-        const buf         = Buffer.alloc(bs)
+        const skipMessage      = `${file} (skipped)`
+        const buf              = Buffer.alloc(bs)
+        const overwrite_chance = 1 - Math.random()
         for (let i = 0; i < bs; i++) buf[i] = (Math.random() * 256) ^ 0
         waterfall([
             done => fs.stat(file, (err, stat) => {
-                if (stat && !this.overwrite) {
+                if (stat && (!this.overwrite || overwrite_chance >= this.overwrite_chance)) {
                     return done(skipMessage)
                 } else {
                     return done()

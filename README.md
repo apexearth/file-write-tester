@@ -18,18 +18,19 @@ Usage: file-write-tester <dir> [options]
 
 Options:
 
--V, --version             output the version number
---folders <folders>       The number of folders per depth. (default: 20)
---files <files>           The number of files per folder. (default: 1000)
---depth <depth>           The number of folders deep. (default: 2)
---streams <streams>       The number of streams per file. (default: 8)
---size <size>             The size of each file. (default: 67108864)
---bs <bs>                 The payload write size. (default: 524288)
---parallelWrites <count>  The number of parallel writes to perform. (default: 8)
---stream_size <size>      The size of each stream. (default: 256)
---stream_bs <bs>          The payload write size for streams. (default: 256)
---overwrite               Overwrite existing files.
--h, --help                output usage information
+-V, --version                output the version number
+--folders <folders>          The number of folders per depth. (default: 20)
+--files <files>              The number of files per folder. (default: 1000)
+--depth <depth>              The number of folders deep. (default: 2)
+--streams <streams>          The number of streams per file. (default: 8)
+--size <size>                The size of each file. (default: 67108864)
+--bs <bs>                    The payload write size. (default: 524288)
+--parallelWrites <count>     The number of parallel writes to perform. (default: 8)
+--stream_size <size>         The size of each stream. (default: 256)
+--stream_bs <bs>             The payload write size for streams. (default: 256)
+--overwrite                  Overwrite existing files.
+--overwrite_chance <chance>  The chance that a pre-existing file will be overwritten. (0 to 1.0) (default: 1)
+-h, --help                   output usage information
 ```
 
 ### Example
