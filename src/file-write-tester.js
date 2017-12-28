@@ -20,6 +20,7 @@ class Writer extends EventEmitter {
         parallelWrites = 8,
         overwrite = false,
         overwrite_chance = 1.0,
+        dive_chance = 0,
     }) {
         super()
         assert.ok(typeof dir === 'string', `dir (${dir}) must be a string`)
@@ -34,10 +35,12 @@ class Writer extends EventEmitter {
         assert.ok(typeof parallelWrites === 'number', `parallelWrites (${parallelWrites}) must be a number`)
         assert.ok(typeof overwrite === 'boolean', `overwrite (${overwrite}) must be a boolean`)
         assert.ok(typeof overwrite_chance === 'number', `overwrite_chance (${overwrite_chance}) must be a number`)
+        assert.ok(typeof dive_chance === 'number', `dive_chance (${dive_chance}) must be a number`)
 
         this.dir              = dir
         this.folders          = folders
         this.depth            = depth
+        this.depth_limit      = depth * 2 + this.dir.split(/[\/\\]/).length // 2x depth + start depth
         this.files            = files
         this.size             = size
         this.bs               = bs
@@ -47,6 +50,7 @@ class Writer extends EventEmitter {
         this.parallelWrites   = parallelWrites
         this.overwrite        = overwrite
         this.overwrite_chance = overwrite_chance
+        this.dive_chance      = dive_chance
 
         this.stats = {
             filesCreated          : 0,
@@ -81,7 +85,7 @@ class Writer extends EventEmitter {
 
     start(done) {
         console.log('===========================')
-        console.log('file-write-tester starting:')
+        console.log('file-write-tester starting: ' + this.dir)
         console.log('===========================')
         Object.keys(this)
             .filter(key => key[0] !== '_' && ['domain', 'stats'].indexOf(key) === -1)
@@ -99,11 +103,21 @@ class Writer extends EventEmitter {
     }
 
     writeFolders(dir, depth, done) {
+        const currentDepth = dir.split(/[\/\\]/).length
+        if (currentDepth > this.depth_limit) {
+            console.log(`!!! Attempted to create: ${dir}`)
+            console.log(`!!! Path limit exceeded: ${currentDepth} (depth_limit = ${this.depth_limit})`)
+            return done()
+        }
         const tasks = range(1, this.folders + 1).map(number => done => {
             if (depth) {
                 this.writeFolders(`${dir}/${number}`, depth - 1, done)
             } else {
-                this.writeFolder(`${dir}/${number}`, done)
+                if (this.dive_chance && Math.random() < this.dive_chance) {
+                    this.writeFolders(`${dir}/${number}`, depth, done)
+                } else {
+                    this.writeFolder(`${dir}/${number}`, done)
+                }
             }
         })
         series(tasks, done)
@@ -161,6 +175,8 @@ class Writer extends EventEmitter {
                 this.log(skipMessage)
                 this.emit('file', skipMessage)
                 return done()
+            } else if (err) {
+                return done(err)
             }
             fs.close(fd, err2 => {
                     this.stats.writesInProgress--
